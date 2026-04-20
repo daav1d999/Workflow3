@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Swipe the Data</title>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#07070b;--card:#111118;--card2:#18181f;--border:#1e1e2c;
+--text:#e2e2ed;--muted:#72728a;--dim:#3e3e55;
+--rose:#ff3366;--rose-glow:rgba(255,51,102,.28);
+--teal:#4ecdc4;
+--gold:#ffd93d;--green:#34d399;--red:#f87171;
+--serif:'Libre Baskerville',Georgia,serif;
+--sans:'Outfit',system-ui,sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;display:flex;justify-content:center}
+.wrap{width:100%;max-width:520px;min-height:100vh;display:flex;flex-direction:column}
+
+/* Screens */
+.screen{display:none;flex-direction:column;flex:1}
+.screen.active{display:flex}
+
+/* Intro */
+.intro{align-items:center;justify-content:center;text-align:center;padding:2rem 1.5rem;position:relative}
+.intro::before{content:'';position:absolute;width:380px;height:380px;border-radius:50%;background:radial-gradient(circle,var(--rose-glow),transparent 70%);top:38%;left:50%;transform:translate(-50%,-50%);pointer-events:none;animation:glow 4s ease-in-out infinite}
+@keyframes glow{0%,100%{opacity:.2;transform:translate(-50%,-50%) scale(1)}50%{opacity:.45;transform:translate(-50%,-50%) scale(1.08)}}
+.tag{font-size:.62rem;letter-spacing:4px;text-transform:uppercase;color:var(--rose);font-weight:700;margin-bottom:.4rem;position:relative}
+.intro h1{font-family:var(--serif);font-size:2.1rem;font-weight:700;line-height:1.15;margin-bottom:.7rem;position:relative}
+.intro h1 em{font-style:italic;color:var(--rose)}
+.intro p{color:var(--muted);max-width:370px;line-height:1.65;font-size:.82rem;margin-bottom:1.6rem;position:relative}
+.btn{background:var(--rose);color:#fff;border:none;padding:.75rem 2rem;border-radius:50px;font-family:var(--sans);font-size:.88rem;font-weight:600;cursor:pointer;transition:all .2s;position:relative}
+.btn:hover{transform:translateY(-2px);box-shadow:0 6px 24px var(--rose-glow)}
+.btn:active{transform:scale(.97)}
+
+/* Top bar */
+.top{display:flex;align-items:center;justify-content:space-between;padding:.65rem 1rem;border-bottom:1px solid var(--border);background:rgba(7,7,11,.93);backdrop-filter:blur(10px);position:sticky;top:0;z-index:20}
+.logo{font-family:var(--serif);font-size:.82rem;font-weight:700;color:var(--rose)}
+.pips{display:flex;gap:4px;align-items:center}
+.pip{width:20px;height:4px;border-radius:2px;background:var(--card2);border:1px solid var(--border);transition:all .3s}
+.pip.now{border-color:var(--muted)}
+.pip.g{background:var(--green);border-color:var(--green)}
+.pip.r{background:var(--red);border-color:var(--red)}
+.sc{font-size:.78rem;font-weight:600;color:var(--muted);min-width:34px;text-align:right}
+
+/* Game area */
+.game{flex:1;padding:1rem;display:flex;flex-direction:column;align-items:center;gap:.9rem}
+
+/* Card */
+.card{width:100%;background:var(--card);border:1px solid var(--border);border-radius:13px;overflow:hidden;transition:transform .3s,opacity .3s}
+.card.out-l{transform:translateX(-110%) rotate(-5deg);opacity:0}
+.card.out-r{transform:translateX(110%) rotate(5deg);opacity:0}
+.card.enter{animation:cin .32s ease-out}
+@keyframes cin{from{transform:translateY(20px) scale(.97);opacity:0}to{transform:none;opacity:1}}
+
+.halves{display:grid;grid-template-columns:1fr 1fr}
+.half{padding:.75rem .9rem}
+.half:first-child{border-right:1px solid var(--border)}
+.hlabel{font-size:.58rem;letter-spacing:2px;text-transform:uppercase;font-weight:700;margin-bottom:.45rem}
+.hlabel.a{color:var(--rose)}.hlabel.b{color:var(--teal)}
+.demo{font-size:.75rem;color:var(--muted);margin-bottom:.6rem;line-height:1.4}
+.demo strong{color:var(--text);font-weight:500}
+.sec{font-size:.58rem;letter-spacing:1.2px;text-transform:uppercase;color:var(--dim);font-weight:600;margin-bottom:.35rem;display:flex;justify-content:space-between;align-items:baseline}
+.sec .avg{font-weight:400;letter-spacing:0;text-transform:none;font-size:.58rem}
+.rr{display:flex;align-items:center;gap:3px;margin-bottom:2.5px}
+.rr .l{font-size:.66rem;color:var(--muted);width:52px;text-align:right;flex-shrink:0}
+.rr .bg{flex:1;height:4.5px;background:var(--card2);border-radius:2px;overflow:hidden}
+.rr .f{height:100%;border-radius:2px}
+.rr .v{font-size:.66rem;font-weight:600;width:14px;text-align:right;flex-shrink:0}
+.ctx{padding:.55rem .9rem;border-top:1px solid var(--border);display:flex;gap:.45rem;flex-wrap:wrap}
+.ch{font-size:.65rem;padding:.18rem .5rem;border-radius:9px;background:var(--card2);color:var(--muted);border:1px solid var(--border)}
+.ch b{color:var(--text);font-weight:600}
+
+/* Buttons */
+.acts{display:flex;gap:.65rem;width:100%}
+.ab{flex:1;padding:.8rem;border-radius:11px;font-family:var(--sans);font-size:.88rem;font-weight:700;cursor:pointer;border:2px solid;transition:all .15s;text-align:center;background:transparent}
+.ab.no{border-color:rgba(248,113,113,.4);color:var(--red)}
+.ab.no:hover{background:rgba(248,113,113,.07);border-color:var(--red)}
+.ab.yes{border-color:rgba(52,211,153,.4);color:var(--green)}
+.ab.yes:hover{background:rgba(52,211,153,.07);border-color:var(--green)}
+.ab:active{transform:scale(.96)}
+
+/* Overlay */
+.ov{display:none;position:fixed;inset:0;z-index:30;background:rgba(7,7,11,.88);backdrop-filter:blur(7px);align-items:center;justify-content:center;padding:1rem}
+.ov.on{display:flex}
+.rev{background:var(--card);border:1px solid var(--border);border-radius:13px;width:100%;max-width:460px;padding:1.3rem;animation:rin .28s ease-out;max-height:92vh;overflow-y:auto}
+@keyframes rin{from{transform:scale(.93);opacity:0}to{transform:none;opacity:1}}
+.rt{text-align:center;margin-bottom:.9rem}
+.ri{font-size:2rem;margin-bottom:.2rem}
+.rh{font-family:var(--serif);font-size:1.1rem;font-weight:700;margin-bottom:.15rem}
+.rs{font-size:.78rem;color:var(--muted)}
+.decs{display:grid;grid-template-columns:1fr 1fr;gap:.45rem;margin-bottom:1.1rem}
+.dec{padding:.45rem;border-radius:7px;text-align:center;font-size:.75rem;border:1px solid var(--border)}
+.dec .w{font-weight:600;font-size:.6rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:.1rem}
+.dec.sy{background:rgba(52,211,153,.05);border-color:rgba(52,211,153,.18)}
+.dec.sy .d{color:var(--green);font-weight:700}
+.dec.sn{background:rgba(248,113,113,.04);border-color:rgba(248,113,113,.14)}
+.dec.sn .d{color:var(--red);font-weight:700}
+
+/* Waterfall */
+.wt{font-size:.58rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);font-weight:600;margin-bottom:.6rem}
+.wr{display:flex;align-items:center;gap:5px;margin-bottom:5px;height:22px}
+.wr .wl{font-size:.7rem;color:var(--muted);width:86px;text-align:right;flex-shrink:0}
+.wr .wt2{flex:1;position:relative;height:16px}
+.wr .wb{position:absolute;left:50%;top:0;width:1px;height:100%;background:var(--dim);opacity:.35}
+.wr .bar{position:absolute;top:2px;height:12px;border-radius:2.5px;transition:width .45s ease .08s,left .45s ease .08s}
+.wr .wv{font-size:.66rem;font-weight:600;width:38px;flex-shrink:0;text-align:left}
+.wfin{display:flex;align-items:center;gap:5px;margin-top:6px;padding-top:6px;border-top:1px solid var(--border);height:22px}
+.wfin .wl{font-size:.7rem;font-weight:600;color:var(--text);width:86px;text-align:right;flex-shrink:0}
+.wfin .wv{font-size:.75rem;font-weight:700;width:38px;text-align:left;flex-shrink:0}
+.wfin .wt2{flex:1;position:relative;height:16px}
+.wfin .wb{position:absolute;left:50%;top:0;width:1px;height:100%;background:var(--dim);opacity:.35}
+.wfin .bar{position:absolute;top:2px;height:12px;border-radius:2.5px}
+.wleg{display:flex;gap:10px;margin-top:7px;font-size:.6rem;color:var(--dim)}
+.wleg span{display:flex;align-items:center;gap:3px}
+.wleg .sq{width:7px;height:7px;border-radius:1.5px}
+.commentary{font-size:.75rem;color:var(--muted);line-height:1.5;margin-top:.8rem;padding:.6rem .75rem;background:var(--card2);border-radius:8px;border:1px solid var(--border)}
+.commentary strong{color:var(--text);font-weight:500}
+.rbtn{width:100%;margin-top:1rem}
+
+/* Summary */
+.summary{align-items:center;padding:1.8rem 1.3rem;text-align:center;overflow-y:auto}
+.sf{font-family:var(--serif);font-size:3.2rem;font-weight:700;margin:.2rem 0}
+.sl{color:var(--muted);font-size:.82rem;margin-bottom:1.2rem;line-height:1.5}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;width:100%;margin-bottom:1.4rem}
+.ss{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:.7rem;text-align:center}
+.ss .sv{font-size:1.3rem;font-weight:700;font-family:var(--serif)}
+.ss .sl2{font-size:.58rem;color:var(--muted);margin-top:.1rem;text-transform:uppercase;letter-spacing:1px}
+.sec2{width:100%;text-align:left;margin-bottom:1.1rem}
+.sec2 h3{font-family:var(--serif);font-size:.9rem;margin-bottom:.2rem}
+.sec2 .desc{font-size:.72rem;color:var(--muted);margin-bottom:.7rem;line-height:1.5}
+.fr{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+.fr .rk{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:#fff;flex-shrink:0}
+.fr .fn{font-size:.78rem;flex:1;text-align:left}
+.fr .fb{width:90px;height:5px;background:var(--card2);border-radius:3px;overflow:hidden;flex-shrink:0}
+.fr .fi{height:100%;border-radius:3px}
+.fr .fv{font-size:.68rem;font-weight:600;width:28px;text-align:right;flex-shrink:0;color:var(--muted)}
+.fr .fp{font-size:.62rem;color:var(--dim);width:70px;text-align:left;flex-shrink:0}
+.ins{font-size:.78rem;color:var(--muted);line-height:1.6;margin-bottom:.55rem;padding-left:.75rem;border-left:2px solid var(--border);text-align:left}
+.ins strong{color:var(--text);font-weight:500}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="screen intro active" id="S0">
+  <div class="tag">Speed Dating Lab</div>
+  <h1>Can you spot<br>a <em>match?</em></h1>
+  <p>10 real speed-dating encounters from a Columbia University experiment. Each card shows how two strangers rated each other. Predict match or no match — then see what the data says about why.</p>
+  <button class="btn" onclick="go()">Start</button>
+</div>
+
+<div class="screen" id="S1">
+  <div class="top">
+    <div class="logo">Swipe Lab</div>
+    <div class="pips" id="pips"></div>
+    <div class="sc" id="sc">0/0</div>
+  </div>
+  <div class="game">
+    <div class="card" id="card"></div>
+    <div class="acts" id="acts">
+      <button class="ab no" onclick="pred(0)">No match</button>
+      <button class="ab yes" onclick="pred(1)">Match</button>
+    </div>
+  </div>
+</div>
+
+<div class="ov" id="ov"><div class="rev" id="rev"></div></div>
+
+<div class="screen summary" id="S2"></div>
+
+</div>
+<script>
+const D=[{"personA": {"gender": "female", "age": 21, "race": "Asian/Pacific Islander/Asian-American", "field": "Operations Research", "ratedPartner": {"attractive": 7.0, "sincere": 7.0, "intelligent": 8.0, "funny": 5.0, "sharedInterests": 2.0}, "like": 6.0, "decision": 0}, "personB": {"gender": "male", "age": 24, "race": "European/Caucasian-American", "ratedPartner": {"attractive": 6.0, "sincere": 7.0, "intelligent": 8.0, "funny": 6.0, "sharedInterests": 7.0}, "decision": 1}, "ageGap": 3, "sameRace": 0, "interestCorr": -0.4, "match": 0}, {"personA": {"gender": "female", "age": 22, "race": "Asian/Pacific Islander/Asian-American", "field": "Engineering", "ratedPartner": {"attractive": 5.0, "sincere": 7.0, "intelligent": 5.0, "funny": 4.0, "sharedInterests": 4.0}, "like": 6.0, "decision": 1}, "personB": {"gender": "male", "age": 26, "race": "Asian/Pacific Islander/Asian-American", "ratedPartner": {"attractive": 6.0, "sincere": 8.0, "intelligent": 9.0, "funny": 8.0, "sharedInterests": 8.0}, "decision": 1}, "ageGap": 4, "sameRace": 1, "interestCorr": -0.15, "match": 1}, {"personA": {"gender": "male", "age": 24, "race": "Latino/Hispanic American", "field": "Law", "ratedPartner": {"attractive": 9.0, "sincere": 7.0, "intelligent": 9.0, "funny": 7.0, "sharedInterests": 6.0}, "like": 9.0, "decision": 1}, "personB": {"gender": "female", "age": 23, "race": "Asian/Pacific Islander/Asian-American", "ratedPartner": {"attractive": 5.0, "sincere": 4.0, "intelligent": 8.0, "funny": 8.0, "sharedInterests": 2.0}, "decision": 0}, "ageGap": 1, "sameRace": 0, "interestCorr": 0.35, "match": 0}, {"personA": {"gender": "female", "age": 29, "race": "European/Caucasian-American", "field": "Art Education", "ratedPartner": {"attractive": 6.0, "sincere": 7.0, "intelligent": 8.0, "funny": 6.0, "sharedInterests": 6.0}, "like": 7.0, "decision": 1}, "personB": {"gender": "male", "age": 24, "race": "European/Caucasian-American", "ratedPartner": {"attractive": 5.0, "sincere": 7.0, "intelligent": 5.0, "funny": 5.0, "sharedInterests": 5.0}, "decision": 0}, "ageGap": 5, "sameRace": 1, "interestCorr": 0.49, "match": 0}, {"personA": {"gender": "female", "age": 21, "race": "European/Caucasian-American", "field": "Economics", "ratedPartner": {"attractive": 10.0, "sincere": 9.0, "intelligent": 10.0, "funny": 10.0, "sharedInterests": 7.0}, "like": 9.0, "decision": 1}, "personB": {"gender": "male", "age": 21, "race": "European/Caucasian-American", "ratedPartner": {"attractive": 8.0, "sincere": 8.0, "intelligent": 7.0, "funny": 7.0, "sharedInterests": 6.0}, "decision": 1}, "ageGap": 0, "sameRace": 1, "interestCorr": 0.76, "match": 1}, {"personA": {"gender": "male", "age": 30, "race": "European/Caucasian-American", "field": "MBA - Private Equity / Real Estate", "ratedPartner": {"attractive": 2.0, "sincere": 7.0, "intelligent": 7.0, "funny": 3.0, "sharedInterests": 1.0}, "like": 5.0, "decision": 0}, "personB": {"gender": "female", "age": 22, "race": "Asian/Pacific Islander/Asian-American", "ratedPartner": {"attractive": 5.0, "sincere": 5.0, "intelligent": 5.0, "funny": 4.0, "sharedInterests": 5.0}, "decision": 1}, "ageGap": 8, "sameRace": 0, "interestCorr": 0.2, "match": 0}, {"personA": {"gender": "male", "age": 30, "race": "European/Caucasian-American", "field": "Business", "ratedPartner": {"attractive": 6.0, "sincere": 8.0, "intelligent": 7.0, "funny": 7.0, "sharedInterests": 7.0}, "like": 7.0, "decision": 1}, "personB": {"gender": "female", "age": 25, "race": "Latino/Hispanic American", "ratedPartner": {"attractive": 7.0, "sincere": 5.0, "intelligent": 7.0, "funny": 8.0, "sharedInterests": 5.0}, "decision": 1}, "ageGap": 5, "sameRace": 0, "interestCorr": 0.34, "match": 1}, {"personA": {"gender": "female", "age": 20, "race": "Latino/Hispanic American", "field": "English", "ratedPartner": {"attractive": 6.0, "sincere": 8.0, "intelligent": 8.0, "funny": 6.0, "sharedInterests": 5.0}, "like": 5.0, "decision": 1}, "personB": {"gender": "male", "age": 21, "race": "European/Caucasian-American", "ratedPartner": {"attractive": 9.0, "sincere": 8.0, "intelligent": 7.0, "funny": 8.0, "sharedInterests": 7.0}, "decision": 1}, "ageGap": 1, "sameRace": 0, "interestCorr": 0.53, "match": 1}, {"personA": {"gender": "male", "age": 22, "race": "Asian/Pacific Islander/Asian-American", "field": "Electrical Engineering", "ratedPartner": {"attractive": 4.0, "sincere": 7.0, "intelligent": 6.0, "funny": 4.0, "sharedInterests": 2.0}, "like": 5.0, "decision": 0}, "personB": {"gender": "female", "age": 22, "race": "Asian/Pacific Islander/Asian-American", "ratedPartner": {"attractive": 7.0, "sincere": 8.0, "intelligent": 7.0, "funny": 8.0, "sharedInterests": 8.0}, "decision": 1}, "ageGap": 0, "sameRace": 1, "interestCorr": 0.1, "match": 0}, {"personA": {"gender": "male", "age": 27, "race": "European/Caucasian-American", "field": "Business", "ratedPartner": {"attractive": 9.0, "sincere": 8.0, "intelligent": 8.0, "funny": 8.0, "sharedInterests": 5.0}, "like": 7.0, "decision": 1}, "personB": {"gender": "female", "age": 25, "race": "European/Caucasian-American", "ratedPartner": {"attractive": 5.0, "sincere": 6.0, "intelligent": 7.0, "funny": 4.0, "sharedInterests": 6.0}, "decision": 1}, "ageGap": 2, "sameRace": 1, "interestCorr": 0.17, "match": 1}];
+
+const BASE=0.178;
+const R={
+attr:[{lo:0,hi:5,r:.023},{lo:5,hi:7,r:.102},{lo:7,hi:11,r:.357}],
+funny:[{lo:0,hi:5,r:.022},{lo:5,hi:7,r:.077},{lo:7,hi:11,r:.328}],
+shared:[{lo:0,hi:4,r:.030},{lo:4,hi:7,r:.132},{lo:7,hi:11,r:.396}],
+gap:[{lo:0,hi:3,r:.195},{lo:3,hi:6,r:.172},{lo:6,hi:99,r:.141}],
+bal:[{lo:0,hi:1,r:.204},{lo:1,hi:2.5,r:.198},{lo:2.5,hi:99,r:.083}]
+};
+function bk(v,k){for(const b of R[k])if(v>=b.lo&&v<b.hi)return b;return R[k][R[k].length-1]}
+function av(a){return a.length?a.reduce((s,v)=>s+v,0)/a.length:0}
+
+let ix=0,ok=0,hist=[],shuf=[];
+// Track which factor had the largest absolute delta each round
+let factorWins={Attractiveness:0,Humor:0,'Shared interests':0,'Age gap':0,'Rating balance':0};
+let factorDeltas=[];// array of {name,delta} per round for commentary
+
+function shuffle(a){let b=[...a];for(let i=b.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
+
+function go(){
+  document.getElementById('S0').classList.remove('active');
+  document.getElementById('S1').classList.add('active');
+  shuf=shuffle(D);ix=0;ok=0;hist=[];
+  factorWins={Attractiveness:0,Humor:0,'Shared interests':0,'Age gap':0,'Rating balance':0};
+  factorDeltas=[];
+  document.getElementById('pips').innerHTML=Array.from({length:10},(_,i)=>`<div class="pip${i===0?' now':''}" id="p${i}"></div>`).join('');
+  render();
+}
+
+function rs(r){return{'European/Caucasian-American':'White','Asian/Pacific Islander/Asian-American':'Asian','Latino/Hispanic American':'Latino','Black/African American':'Black','Other':'Other'}[r]||r}
+function bc(v,w){if(v>=8)return w==='a'?'var(--rose)':'var(--teal)';if(v>=6)return w==='a'?'rgba(255,51,102,.4)':'rgba(78,205,196,.4)';if(v>=4)return'var(--dim)';return'var(--red)'}
+
+function bars(ratings,w){
+  const t=[['attractive','Attractive'],['sincere','Sincere'],['intelligent','Intelligent'],['funny','Funny'],['sharedInterests','Shared int.']];
+  return t.map(([k,l])=>{const v=ratings[k];if(v==null)return'';return`<div class="rr"><span class="l">${l}</span><div class="bg"><div class="f" style="width:${v*10}%;background:${bc(v,w)}"></div></div><span class="v" style="color:${bc(v,w)}">${v}</span></div>`}).join('');
+}
+
+function render(){
+  if(ix>=10){summary();return}
+  const e=shuf[ix],a=e.personA,b=e.personB;
+  const c=document.getElementById('card');
+  c.className='card enter';
+  c.innerHTML=`<div class="halves">
+    <div class="half">
+      <div class="hlabel a">Person A</div>
+      <div class="demo"><strong>${a.gender}, ${a.age}</strong><br>${rs(a.race)}<br>${a.field}</div>
+      <div class="sec">Rated person B <span class="avg">avg 6.2</span></div>
+      ${bars(a.ratedPartner,'a')}
+    </div>
+    <div class="half">
+      <div class="hlabel b">Person B</div>
+      <div class="demo"><strong>${b.gender}, ${b.age}</strong><br>${rs(b.race)}</div>
+      <div class="sec">Rated person A <span class="avg">avg 6.2</span></div>
+      ${bars(b.ratedPartner,'b')}
+    </div>
+  </div>
+  <div class="ctx">
+    <span class="ch">Age gap <b>${e.ageGap} yr</b></span>
+    <span class="ch">Same race <b>${e.sameRace?'Yes':'No'}</b></span>
+    <span class="ch">Hobby overlap <b>${e.interestCorr>=0?'+':''}${e.interestCorr.toFixed(2)}</b></span>
+  </div>`;
+  document.getElementById('acts').style.display='flex';
+}
+
+function pred(g){
+  const e=shuf[ix],a=e.match,c=g===a;
+  if(c)ok++;
+  hist.push({e,guess:g,actual:a,ok:c});
+  const p=document.getElementById('p'+ix);
+  p.classList.remove('now');p.classList.add(c?'g':'r');
+  document.getElementById('card').classList.add(g?'out-r':'out-l');
+  document.getElementById('acts').style.display='none';
+  document.getElementById('sc').textContent=`${ok}/${hist.length}`;
+  setTimeout(()=>reveal(e,g,a,c),280);
+}
+
+function reveal(e,guess,actual,correct){
+  const a=e.personA,b=e.personB;
+  const atA=a.ratedPartner.attractive||0,atB=b.ratedPartner.attractive||0;
+  const fuA=a.ratedPartner.funny||0,fuB=b.ratedPartner.funny||0;
+  const siA=a.ratedPartner.sharedInterests,siB=b.ratedPartner.sharedInterests;
+  const raA=av([a.ratedPartner.attractive,a.ratedPartner.sincere,a.ratedPartner.intelligent,a.ratedPartner.funny].filter(v=>v!=null));
+  const raB=av([b.ratedPartner.attractive,b.ratedPartner.sincere,b.ratedPartner.intelligent,b.ratedPartner.funny].filter(v=>v!=null));
+
+  const factors=[];
+  const ab=bk((atA+atB)/2,'attr');factors.push({name:'Attractiveness',rate:ab.r,delta:ab.r-BASE});
+  const fb=bk((fuA+fuB)/2,'funny');factors.push({name:'Humor',rate:fb.r,delta:fb.r-BASE});
+  if(siA!=null&&siB!=null){const sb=bk((siA+siB)/2,'shared');factors.push({name:'Shared interests',rate:sb.r,delta:sb.r-BASE})}
+  const gb=bk(e.ageGap,'gap');factors.push({name:'Age gap',rate:gb.r,delta:gb.r-BASE});
+  const bb=bk(Math.abs(raA-raB),'bal');factors.push({name:'Rating balance',rate:bb.r,delta:bb.r-BASE});
+
+  // Track dominant factor
+  let maxF=factors[0];
+  factors.forEach(f=>{if(Math.abs(f.delta)>Math.abs(maxF.delta))maxF=f});
+  factorWins[maxF.name]=(factorWins[maxF.name]||0)+1;
+  factorDeltas.push(factors.map(f=>({name:f.name,delta:f.delta})));
+
+  const maxD=Math.max(0.22,...factors.map(f=>Math.abs(f.delta)));
+  const est=Math.max(2,Math.min(95,Math.round(av(factors.map(f=>f.rate))*100)));
+
+  function wbar(f){
+    const pct=(Math.abs(f.delta)/maxD)*44;
+    const pos=f.delta>=0;
+    const col=pos?'var(--green)':'var(--red)';
+    const left=pos?'50%':(50-pct)+'%';
+    const sgn=pos?'+':'';
+    return`<div class="wr"><span class="wl">${f.name}</span><div class="wt2"><div class="wb"></div><div class="bar" style="left:${left};width:${pct}%;background:${col}"></div></div><span class="wv" style="color:${col}">${sgn}${Math.round(f.delta*100)}pp</span></div>`;
+  }
+
+  // Commentary — one sentence referencing accumulated patterns
+  const com=buildCommentary(factors,ix);
+
+  const rv=document.getElementById('rev');
+  rv.innerHTML=`
+    <div class="rt">
+      <div class="ri">${correct?'\u2713':'\u2717'}</div>
+      <div class="rh" style="color:${correct?'var(--green)':'var(--red)'}">${correct?'Correct':'Wrong'}</div>
+      <div class="rs">${actual?'They matched \u2014 both said yes':'No match \u2014 at least one said no'}</div>
+    </div>
+    <div class="decs">
+      <div class="dec ${a.decision?'sy':'sn'}"><div class="w" style="color:var(--rose)">Person A</div><div class="d">${a.decision?'Said yes':'Said no'}</div></div>
+      <div class="dec ${b.decision?'sy':'sn'}"><div class="w" style="color:var(--teal)">Person B</div><div class="d">${b.decision?'Said yes':'Said no'}</div></div>
+    </div>
+    <div class="wt">What the dataset says about encounters like this</div>
+    <div class="wr"><span class="wl" style="color:var(--text);font-weight:500">Baseline</span><div class="wt2"><div class="wb"></div></div><span class="wv" style="color:var(--muted)">18%</span></div>
+    ${factors.map(wbar).join('')}
+    <div class="wfin"><span class="wl">Data estimate</span><div class="wt2"><div class="wb"></div><div class="bar" style="left:${est<50?est*1+'%':'50%'};width:${Math.abs(est-50)*.9}%;background:${actual?'var(--green)':'var(--red)'}"></div></div><span class="wv" style="color:var(--text)">${est}%</span></div>
+    <div class="wleg">
+      <span><span class="sq" style="background:var(--green)"></span>Helps</span>
+      <span><span class="sq" style="background:var(--red)"></span>Hurts</span>
+      <span>pp = points vs 18% base</span>
+    </div>
+    ${com?`<div class="commentary">${com}</div>`:''}
+    <button class="btn rbtn" onclick="nxt()">${ix<9?'Next encounter':'See results'}</button>`;
+  document.getElementById('ov').classList.add('on');
+}
+
+function buildCommentary(factors,round){
+  const n=round+1;
+  if(n===1) return'This waterfall appears after every prediction. Watch which factors consistently produce the longest bars across rounds.';
+
+  // Find current dominant factor
+  let cur=factors[0];factors.forEach(f=>{if(Math.abs(f.delta)>Math.abs(cur.delta))cur=f});
+
+  // Find overall most-dominant factor so far
+  let topF='',topC=0;
+  for(const[k,v]of Object.entries(factorWins)){if(v>topC){topC=v;topF=k}}
+
+  // Check if same factor has dominated every round
+  if(topC===n) return`<strong>${topF}</strong> has been the largest factor in all ${n} encounters so far.`;
+
+  // Check if a factor has never been positive
+  const neverPos={};
+  for(const name of Object.keys(factorWins)) neverPos[name]=true;
+  factorDeltas.forEach(round=>{round.forEach(f=>{if(f.delta>0.005)neverPos[f.name]=false})});
+  const stuckNeg=Object.entries(neverPos).filter(([k,v])=>v&&factorDeltas.every(rd=>rd.some(f=>f.name===k)));
+  if(stuckNeg.length===1&&n>=3) return`<strong>${stuckNeg[0][0]}</strong> hasn't pushed toward a match in any of your ${n} encounters yet.`;
+
+  // Default: report the running leader
+  if(topC>=2) return`<strong>${topF}</strong> has been the dominant factor in ${topC} of ${n} encounters so far.`;
+
+  return`No single factor has dominated yet \u2014 each encounter has been driven by something different.`;
+}
+
+function nxt(){
+  document.getElementById('ov').classList.remove('on');
+  ix++;
+  if(ix<10){
+    const p=document.getElementById('p'+ix);
+    if(p)p.classList.add('now');
+    render();
+  }else summary();
+}
+
+function summary(){
+  document.getElementById('S1').classList.remove('active');
+  const s=document.getElementById('S2');
+  s.classList.add('active');
+
+  const pct=Math.round(ok/10*100);
+  const tp=hist.filter(h=>h.guess===1&&h.actual===1).length;
+  const tn=hist.filter(h=>h.guess===0&&h.actual===0).length;
+  const fp=hist.filter(h=>h.guess===1&&h.actual===0).length;
+  const fn=hist.filter(h=>h.guess===0&&h.actual===1).length;
+
+  // Compute factor match rates from user's 10 encounters
+  const userFactors=[
+    {name:'Attractiveness',key:'attr',getVal:e=>((e.personA.ratedPartner.attractive||0)+(e.personB.ratedPartner.attractive||0))/2,dataR:0.49,color:'var(--rose)'},
+    {name:'Humor',key:'funny',getVal:e=>((e.personA.ratedPartner.funny||0)+(e.personB.ratedPartner.funny||0))/2,dataR:0.41,color:'var(--gold)'},
+    {name:'Shared interests',key:'shared',getVal:e=>{const a=e.personA.ratedPartner.sharedInterests,b=e.personB.ratedPartner.sharedInterests;return(a!=null&&b!=null)?(a+b)/2:5},dataR:0.40,color:'var(--teal)'},
+    {name:'Age gap',key:'gap',getVal:e=>e.ageGap,dataR:0.18,color:'var(--dim)',invert:true},
+    {name:'Rating balance',key:'bal',getVal:e=>{const ra=av([e.personA.ratedPartner.attractive,e.personA.ratedPartner.sincere,e.personA.ratedPartner.intelligent,e.personA.ratedPartner.funny].filter(v=>v!=null));const rb=av([e.personB.ratedPartner.attractive,e.personB.ratedPartner.sincere,e.personB.ratedPartner.intelligent,e.personB.ratedPartner.funny].filter(v=>v!=null));return Math.abs(ra-rb)},dataR:0.20,color:'#a78bfa',invert:true},
+  ];
+
+  // Add sincerity and ambition (not in waterfall, but in summary ranking)
+  const allFactors=[
+    {name:'Attractiveness',dataR:0.49,color:'var(--rose)'},
+    {name:'Humor',dataR:0.41,color:'var(--gold)'},
+    {name:'Shared interests',dataR:0.40,color:'var(--teal)'},
+    {name:'Intelligence',dataR:0.22,color:'#a78bfa'},
+    {name:'Sincerity',dataR:0.21,color:'var(--muted)'},
+    {name:'Ambition',dataR:0.18,color:'var(--dim)'},
+  ];
+
+  // Compute per-factor match rates from user's encounters
+  // For each factor, split encounters into high/low and show match rate
+  const userStats=userFactors.map(uf=>{
+    const vals=hist.map(h=>({v:uf.getVal(h.e),m:h.actual}));
+    const med=av(vals.map(x=>x.v));
+    const hi=vals.filter(x=>uf.invert?x.v<=med:x.v>=med);
+    const lo=vals.filter(x=>uf.invert?x.v>med:x.v<med);
+    const hiRate=hi.length?hi.filter(x=>x.m===1).length/hi.length:0;
+    const loRate=lo.length?lo.filter(x=>x.m===1).length/lo.length:0;
+    return{name:uf.name,hiRate,loRate,spread:Math.abs(hiRate-loRate),dataR:uf.dataR,color:uf.color};
+  });
+
+  let bias='';
+  if(fp>fn)bias=`You leaned <strong>optimistic</strong> \u2014 ${fp} false match${fp>1?'es':''} vs ${fn} missed match${fn!==1?'es':''}. In the full dataset, only 16.5% of encounters end in a match. Most attraction is one-sided.`;
+  else if(fn>fp)bias=`You leaned <strong>skeptical</strong> \u2014 you missed ${fn} real match${fn>1?'es':''} while only calling ${fp} false one${fp!==1?'s':''}. When both people rate attractiveness and humor highly, match rates jump above 35%.`;
+  else bias=`You were <strong>well-calibrated</strong> \u2014 equal false positives and false negatives. That balance is harder than it looks.`;
+
+  s.innerHTML=`
+    <div class="tag">10 encounters complete</div>
+    <div class="sf" style="color:${pct>=60?'var(--green)':pct>=40?'var(--gold)':'var(--red)'}">${pct}%</div>
+    <div class="sl">${ok} out of 10 correct \u00b7 baseline guessing = 50%</div>
+    <div class="sg">
+      <div class="ss"><div class="sv" style="color:var(--green)">${tp}</div><div class="sl2">Matches spotted</div></div>
+      <div class="ss"><div class="sv" style="color:var(--green)">${tn}</div><div class="sl2">Misses spotted</div></div>
+      <div class="ss"><div class="sv" style="color:var(--red)">${fp}</div><div class="sl2">False matches</div></div>
+      <div class="ss"><div class="sv" style="color:var(--red)">${fn}</div><div class="sl2">Missed matches</div></div>
+    </div>
+
+    <div class="sec2">
+      <h3>What actually predicts a match</h3>
+      <div class="desc">Ranked by correlation with saying "yes" across 8,299 real encounters.</div>
+      ${allFactors.map((f,i)=>`<div class="fr">
+        <div class="rk" style="background:${f.color};opacity:${1-i*.1}">${i+1}</div>
+        <span class="fn">${f.name}</span>
+        <div class="fb"><div class="fi" style="width:${f.dataR/0.5*100}%;background:${f.color}"></div></div>
+        <span class="fv">${f.dataR.toFixed(2)}</span>
+        <span class="fp">r value</span>
+      </div>`).join('')}
+    </div>
+
+    <div class="sec2">
+      <h3>Your prediction bias</h3>
+      <div class="ins">${bias}</div>
+    </div>
+
+    <div class="sec2">
+      <h3>The say\u2013do gap</h3>
+      <div class="ins">The biggest finding from this study: participants <strong>said</strong> they valued intelligence and sincerity above all else. But their actual decisions were driven by attractiveness, humor, and shared interests. What people claim to want and what predicts their "yes" are different things.</div>
+    </div>
+
+    <button class="btn" onclick="replay()">Play again</button>`;
+}
+
+function replay(){
+  document.getElementById('S2').classList.remove('active');
+  document.getElementById('S1').classList.add('active');
+  shuf=shuffle(D);ix=0;ok=0;hist=[];
+  factorWins={Attractiveness:0,Humor:0,'Shared interests':0,'Age gap':0,'Rating balance':0};
+  factorDeltas=[];
+  document.getElementById('pips').innerHTML=Array.from({length:10},(_,i)=>`<div class="pip${i===0?' now':''}" id="p${i}"></div>`).join('');
+  render();
+}
+</script>
+</body>
+</html>
